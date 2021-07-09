@@ -1,6 +1,8 @@
 """The module is responsible for the graphical interface of all windows in application."""
+import math
 import tkinter as tk
 from tkinter import ttk, scrolledtext, Menu
+from tkinter import messagebox as msg
 
 MAIN_FONT = ("courier new", 12)
 FONT_5_WORDS = ("courier new", 14, "bold")
@@ -19,6 +21,10 @@ class TextReaderInterface:
         self.window.title("Text Reader")
         self.window.geometry("610x540")
         self.window.resizable(False, False)
+        self.window.iconbitmap('favicon.ico')
+
+        self.text = None
+        self.words = []
 
         # Styles
         self.style.configure('TFrame', background='#DEEEEA')
@@ -43,16 +49,16 @@ class TextReaderInterface:
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
 
         # Edit items in menu bar
-        self.edit_menu = Menu(self.menu_bar, tearoff=0, postcommand="")
-        self.edit_menu.add_command(label="Cut", command="")
-        self.edit_menu.add_command(label="Copy", command="")
-        self.edit_menu.add_command(label="Paste", command="")
-        self.edit_menu.add_command(label="Delete", command="")
+        self.edit_menu = Menu(self.menu_bar, tearoff=0, postcommand=self.disable_menu)
+        self.edit_menu.add_command(label="Cut", command=self.cut_text)
+        self.edit_menu.add_command(label="Copy", command=self.copy_text)
+        self.edit_menu.add_command(label="Paste", command=self.paste_text)
+        self.edit_menu.add_command(label="Delete", command=self.delete_text)
         self.menu_bar.add_cascade(label="Edit", menu=self.edit_menu)
 
         # Help items in menu bar
         self.help_menu = Menu(self.menu_bar, tearoff=0)
-        self.help_menu.add_command(label="About", command="")
+        self.help_menu.add_command(label="About", command=self.msg_about)
         self.menu_bar.add_cascade(label="Help", menu=self.help_menu)
 
         # Tkinter Notebook
@@ -106,3 +112,67 @@ class TextReaderInterface:
         self.fifth_word = ttk.Label(self.words_frame, font=FONT_5_WORDS, foreground="#BF1363")
         self.fifth_word.grid(column=0, row=4, padx=10, pady=30)
 
+    def msg_about(self):
+        """Show about --> option in Menu bar - Help - About."""
+        self.window.withdraw()
+        msg.showinfo("About Text Reader",
+                     "A Python GUI created to convert text from files to speech and describe the text in 5 most "
+                     "popular words.")
+        self.window.deiconify()
+
+    def disable_menu(self):
+        """Allows to disable commands in menu bar depending on the Frame."""
+        if self.tab_control.index("current") == 0:
+            self.edit_menu.entryconfigure('Cut', state="normal")
+            self.edit_menu.entryconfigure('Paste', state="normal")
+            self.edit_menu.entryconfigure('Delete', state="normal")
+            self.file_menu.entryconfigure('Open', state="normal")
+        elif self.tab_control.index("current") == 1:
+            self.edit_menu.entryconfigure('Cut', state="disabled")
+            self.edit_menu.entryconfigure('Paste', state="disabled")
+            self.edit_menu.entryconfigure('Delete', state="disabled")
+            self.file_menu.entryconfigure('Open', state="disabled")
+
+    def cut_text(self):
+        """Cut text."""
+        text = ""
+        try:
+            text = self.textbox.get("sel.first", "sel.last")
+            self.textbox.delete("sel.first", "sel.last")
+        except tk.TclError:
+            index = float(math.floor(float(self.textbox.index(tk.INSERT))))
+            text = self.textbox.get(index, index + 1)
+            self.textbox.delete(index, index + 1)
+        finally:
+            self.window.clipboard_clear()
+            self.window.clipboard_append(text)
+
+    def copy_text(self):
+        """Copy text to clipboard."""
+        self.window.clipboard_clear()
+        if self.tab_control.index("current") == 0:
+            try:
+                self.text = self.textbox.get("sel.first", "sel.last")
+            except tk.TclError:
+                self.text = self.textbox.get("1.0", tk.END)
+            self.window.clipboard_append(self.text)
+        elif self.tab_control.index("current") == 1:
+            self.window.clipboard_append(self.words)
+
+    def paste_text(self):
+        """Paste text."""
+        text_to_add = self.window.clipboard_get()
+        self.textbox.insert(self.textbox.index(tk.INSERT), text_to_add)
+
+    def delete_text(self):
+        """Delete text."""
+        try:
+            self.textbox.delete("sel.first", "sel.last")
+        except tk.TclError:
+            self.textbox.delete("1.0", tk.END)
+            self.text = None
+            self.first_word.configure(text="")
+            self.second_word.configure(text="")
+            self.third_word.configure(text="")
+            self.fourth_word.configure(text="")
+            self.fifth_word.configure(text="")
