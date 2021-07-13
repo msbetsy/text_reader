@@ -3,6 +3,7 @@ import math
 import tkinter as tk
 from tkinter import ttk, scrolledtext, Menu
 from tkinter import messagebox as msg
+from tkinter.filedialog import asksaveasfile
 
 MAIN_FONT = ("courier new", 12)
 FONT_5_WORDS = ("courier new", 14, "bold")
@@ -43,9 +44,9 @@ class TextReaderInterface:
         # File items in menu bar
         self.file_menu = Menu(self.menu_bar, tearoff=0)
         self.file_menu.add_command(label="Open", command="")
-        self.file_menu.add_command(label="Save", command="")
+        self.file_menu.add_command(label="Save", command=self.save_text)
         self.file_menu.add_separator()
-        self.file_menu.add_command(label="Exit", command="")
+        self.file_menu.add_command(label="Exit", command=self.quit)
         self.menu_bar.add_cascade(label="File", menu=self.file_menu)
 
         # Edit items in menu bar
@@ -176,3 +177,23 @@ class TextReaderInterface:
             self.third_word.configure(text="")
             self.fourth_word.configure(text="")
             self.fifth_word.configure(text="")
+
+    def save_text(self):
+        """Allows to save the text as txt file."""
+        if self.tab_control.index("current") == 0:
+            text = self.textbox.get("1.0", tk.END)
+            if text is not None:
+                files = [('Text Document', '*.txt')]
+                text_file = asksaveasfile(title="Save your text as .txt", filetypes=files,
+                                          defaultextension=files)
+                if text_file is not None:
+                    text_file.write(text)
+                    text_file.close()
+            else:
+                msg.showwarning(title="Warning", message="There is no data to save!")
+
+    def quit(self):
+        """Exit the application."""
+        self.window.quit()
+        self.window.destroy()
+        exit()
