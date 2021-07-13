@@ -3,7 +3,8 @@ import math
 import tkinter as tk
 from tkinter import ttk, scrolledtext, Menu
 from tkinter import messagebox as msg
-from tkinter.filedialog import asksaveasfile
+from tkinter.filedialog import asksaveasfile, askopenfile
+from files import FilesManager
 
 MAIN_FONT = ("courier new", 12)
 FONT_5_WORDS = ("courier new", 14, "bold")
@@ -18,6 +19,7 @@ class TextReaderInterface:
         """Constructor method."""
         self.window = tk.Tk()
         self.style = ttk.Style()
+        self.file = FilesManager()
 
         self.window.title("Text Reader")
         self.window.geometry("610x540")
@@ -25,6 +27,7 @@ class TextReaderInterface:
         self.window.iconbitmap('favicon.ico')
 
         self.text = None
+        self.file_path = None
         self.words = []
 
         # Styles
@@ -43,7 +46,7 @@ class TextReaderInterface:
 
         # File items in menu bar
         self.file_menu = Menu(self.menu_bar, tearoff=0)
-        self.file_menu.add_command(label="Open", command="")
+        self.file_menu.add_command(label="Open", command=self.open_file)
         self.file_menu.add_command(label="Save", command=self.save_text)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self.quit)
@@ -177,6 +180,19 @@ class TextReaderInterface:
             self.third_word.configure(text="")
             self.fourth_word.configure(text="")
             self.fifth_word.configure(text="")
+
+    def open_file(self):
+        """Load text from the computer --> option in Menu bar - File - Open."""
+        files = [('Text Document', '*.txt'), ('PDF Document', '*.pdf'), ('Word Document', '*.docx')]
+        text_file = askopenfile(mode='r', title="Open your file", filetypes=files,
+                                defaultextension=files)
+        if text_file is not None:
+            self.file_path = text_file.name
+            text_inside = self.file.load_file(text_file.name)
+            text_file.close()
+            self.textbox.delete("1.0", tk.END)
+            self.textbox.insert("1.0", text_inside)
+            self.text = self.textbox
 
     def save_text(self):
         """Allows to save the text as txt file."""
