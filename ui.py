@@ -5,6 +5,7 @@ from tkinter import ttk, scrolledtext, Menu
 from tkinter import messagebox as msg
 from tkinter.filedialog import asksaveasfile, askopenfile
 from files import FilesManager
+from languages import languages
 
 MAIN_FONT = ("courier new", 12)
 FONT_5_WORDS = ("courier new", 14, "bold")
@@ -29,6 +30,7 @@ class TextReaderInterface:
         self.text = None
         self.file_path = None
         self.words = []
+        self.language = "english"
 
         # Styles
         self.style.configure('TFrame', background='#DEEEEA')
@@ -93,7 +95,8 @@ class TextReaderInterface:
         self.language = tk.StringVar()
         self.language_chosen = ttk.Combobox(self.read_frame, width=12, textvariable=self.language, font=MAIN_FONT,
                                             state="readonly")
-
+        self.language_chosen["values"] = tuple(languages.keys())
+        self.language_chosen.current(1)
         self.language_chosen.grid(column=1, row=0)
 
         self.words_frame = ttk.LabelFrame(self.tab_words, height=452, width=433, text="5 most popular words in text")
