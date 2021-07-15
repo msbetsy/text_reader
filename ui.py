@@ -81,7 +81,8 @@ class TextReaderInterface:
         self.read_frame = ttk.LabelFrame(self.tab_read, text="Convert text to audio")
         self.read_frame.grid(column=0, row=0, padx=20, pady=20, ipady=15)
 
-        self.convert = ttk.Button(self.read_frame, text="Convert!", command="")
+        self.convert = ttk.Button(self.read_frame, text="Convert!",
+                                  command=lambda: [self.convert_text(), self.find_5_words()])
         self.convert.place(x=30, y=390)
 
         self.textbox = scrolledtext.ScrolledText(self.read_frame, width=60, height=20, wrap=tk.WORD,
@@ -216,3 +217,35 @@ class TextReaderInterface:
         self.window.quit()
         self.window.destroy()
         exit()
+
+    def convert_text(self):
+        """Convert text to audio file."""
+        if msg.askyesno(message="Do you want to save audio file?"):
+            text = self.textbox.get("1.0", tk.END)
+            self.file.text = text
+            files = [('Sound', '*.mp3')]
+            mp3_file = asksaveasfile(title="Save your mp3 file", filetypes=files, defaultextension=files)
+            if mp3_file is not None:
+                self.file.convert_text_to_mp3(languages[self.language.get()], mp3_file.name)
+            msg.showinfo(title="Text to audio", message="Done")
+
+    def find_5_words(self):
+        """Find the most 5 popular words in text."""
+        del self.words[:]
+        text = self.textbox.get("1.0", tk.END)
+        self.file.text = text
+        self.words = self.file.find_top_5_words(self.language.get())
+        words_count = len(self.words)
+        if words_count == 0:
+            self.first_word.configure("All words are stop words.")
+        if words_count >= 1:
+            self.first_word.configure(text=self.words[0])
+        if words_count >= 2:
+            self.second_word.configure(text=self.words[1])
+        if words_count >= 3:
+            self.third_word.configure(text=self.words[2])
+        if words_count >= 4:
+            self.fourth_word.configure(text=self.words[3])
+        if words_count == 5:
+            self.fifth_word.configure(text=self.words[4])
+        msg.showinfo(title="top 5 words", message="5 words are found, check: Top 5 words")
