@@ -231,6 +231,7 @@ class TextReaderInterface:
 
     def find_5_words(self):
         """Find the most 5 popular words in text."""
+        self.clean_5_words()
         del self.words[:]
         text = self.textbox.get("1.0", tk.END)
         self.file.text = text
@@ -249,3 +250,13 @@ class TextReaderInterface:
         if words_count == 5:
             self.fifth_word.configure(text=self.words[4])
         msg.showinfo(title="top 5 words", message="5 words are found, check: Top 5 words")
+
+    def clean_5_words(self):
+        """Remove words from Top 5 words Frame."""
+        self.first_word.configure(text="")
+        self.second_word.configure(text="")
+        self.third_word.configure(text="")
+        self.fourth_word.configure(text="")
+        self.fifth_word.configure(text="")
+
+
