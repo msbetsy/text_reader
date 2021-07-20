@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk, scrolledtext, Menu
 from tkinter import messagebox as msg
 from tkinter.filedialog import asksaveasfile, askopenfile
+from threading import Thread
 from files import FilesManager
 from languages import languages
 
@@ -48,7 +49,7 @@ class TextReaderInterface:
 
         # File items in menu bar
         self.file_menu = Menu(self.menu_bar, tearoff=0)
-        self.file_menu.add_command(label="Open", command=self.open_file)
+        self.file_menu.add_command(label="Open", command=self.open_thread)
         self.file_menu.add_command(label="Save", command=self.save_text)
         self.file_menu.add_separator()
         self.file_menu.add_command(label="Exit", command=self.quit)
@@ -81,8 +82,7 @@ class TextReaderInterface:
         self.read_frame = ttk.LabelFrame(self.tab_read, text="Convert text to audio")
         self.read_frame.grid(column=0, row=0, padx=20, pady=20, ipady=15)
 
-        self.convert = ttk.Button(self.read_frame, text="Convert!",
-                                  command=lambda: [self.convert_text(), self.find_5_words()])
+        self.convert = ttk.Button(self.read_frame, text="Convert!", command=self.convert_thread)
         self.convert.place(x=30, y=390)
 
         self.textbox = scrolledtext.ScrolledText(self.read_frame, width=60, height=20, wrap=tk.WORD,
@@ -231,7 +231,6 @@ class TextReaderInterface:
 
     def find_5_words(self):
         """Find the most 5 popular words in text."""
-        self.clean_5_words()
         del self.words[:]
         text = self.textbox.get("1.0", tk.END)
         self.file.text = text
@@ -259,4 +258,20 @@ class TextReaderInterface:
         self.fourth_word.configure(text="")
         self.fifth_word.configure(text="")
 
+    def convert_thread(self):
+        """Run methods in threads when convert button is clicked."""
+        thread_mp3 = Thread(target=self.convert_text)
+        thread_mp3.setDaemon(True)
+        thread_mp3.start()
+        thread_words = Thread(target=self.find_5_words)
+        thread_words.setDaemon(True)
+        thread_words.start()
+        thread_clean_5_words = Thread(target=self.clean_5_words)
+        thread_clean_5_words.setDaemon(True)
+        thread_clean_5_words.start()
 
+    def open_thread(self):
+        """Run open method in threads during file opening."""
+        thread_open_file = Thread(target=self.open_file)
+        thread_open_file.setDaemon(True)
+        thread_open_file.start()
