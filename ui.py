@@ -7,6 +7,7 @@ from tkinter.filedialog import asksaveasfile, askopenfile
 from threading import Thread
 from files import FilesManager
 from languages import languages
+from tips import create_tip
 
 MAIN_FONT = ("courier new", 12)
 FONT_5_WORDS = ("courier new", 14, "bold")
@@ -99,6 +100,8 @@ class TextReaderInterface:
         self.language_chosen["values"] = tuple(languages.keys())
         self.language_chosen.current(1)
         self.language_chosen.grid(column=1, row=0)
+
+        create_tip(self.language_chosen, "Choose the language of the text \nif you don't want to include stop words")
 
         self.words_frame = ttk.LabelFrame(self.tab_words, height=452, width=433, text="5 most popular words in text")
         self.words_frame.grid_propagate(0)
