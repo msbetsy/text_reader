@@ -202,7 +202,7 @@ class TextReaderInterface:
             self.text = self.textbox
 
     def save_text(self):
-        """Allows to save the text as txt file."""
+        """Allows to save the text as txt file or in SQL base depending on the Frame."""
         if self.tab_control.index("current") == 0:
             text = self.textbox.get("1.0", tk.END)
             if text is not None:
@@ -212,6 +212,25 @@ class TextReaderInterface:
                 if text_file is not None:
                     text_file.write(text)
                     text_file.close()
+            else:
+                msg.showwarning(title="Warning", message="There is no data to save!")
+        elif self.tab_control.index("current") == 1:
+            text = self.words
+            if len(text) > 0:
+                result = msg.askyesno(title="Save words", message="Do you want to save top 5 words in SQL database?")
+                if result:
+                    if self.file_path is not None:
+                        TextReaderInterface.start_sql_gui(words=text, path=self.file_path)
+                    else:
+                        msg.showwarning(message="You have to save your file as txt before saving in SQL!")
+                        files = [('Text Document', '*.txt')]
+                        text_file = asksaveasfile(title="Save your text as .txt", filetypes=files,
+                                                  defaultextension=files)
+                        if text_file is not None:
+                            self.file_path = text_file.name
+                            text_file.write(str(text))
+                            text_file.close()
+                            TextReaderInterface.start_sql_gui(words=text, path=self.file_path)
             else:
                 msg.showwarning(title="Warning", message="There is no data to save!")
 
@@ -278,3 +297,155 @@ class TextReaderInterface:
         thread_open_file = Thread(target=self.open_file)
         thread_open_file.setDaemon(True)
         thread_open_file.start()
+
+    @staticmethod
+    def start_sql_gui(words, path):
+        """Open SQL GUI.
+
+        :param words: 5 top popular words in text.
+        :type: list
+        :param path: File path to text in computer.
+        :type: str
+        """
+        sql_gui = SQLSaveInterface(words=words, path=path)
+        sql_gui.sql_window.mainloop()
+
+
+class SQLSaveInterface(TextReaderInterface):
+    """This class can be used to save 5 words in SQL database and for the creation new databases and tables.
+    """
+
+    def __init__(self, words, path):
+        """Constructor method."""
+
+        self.sql_window = tk.Toplevel()
+        self.sql_window.title("Save in SQL base")
+        self.sql_window.geometry("830x640")
+        self.sql_window.resizable(False, False)
+        self.sql_window.iconbitmap('favicon.ico')
+        self.words_to_use = words
+        self.path = path
+
+        # Styles
+        self.sql_window.configure(bg='#DEEEEA')
+        self.sql_window.option_add('*TCombobox*Listbox.font', MAIN_FONT)
+
+        # DB
+        self.db_frame = ttk.LabelFrame(self.sql_window, height=105, width=650, text="Choose Database")
+        self.db_frame.grid_propagate(0)
+        self.db_frame.grid(column=0, row=0, padx=20, pady=20, ipadx=66)
+        self.db_frame.grid_columnconfigure(0, weight=0)
+
+        self.label_choose_db = ttk.Label(self.db_frame, text="Choose database from list:")
+        self.label_choose_db.grid(column=0, row=0, pady=5)
+
+        self.button_choose_db = ttk.Button(self.db_frame, text="Confirm", command="")
+        self.button_choose_db.grid(column=2, row=0, pady=5)
+
+        self.database = tk.StringVar()
+        self.database_chosen = ttk.Combobox(self.db_frame, width=30, textvariable=self.database, font=MAIN_FONT,
+                                            state="readonly")
+        self.database_chosen.grid(column=1, row=0, pady=5)
+
+        self.label_create_db = ttk.Label(self.db_frame, text="Or create new one:")
+        self.label_create_db.grid(column=0, row=1, pady=5)
+
+        new_db = tk.StringVar()
+        self.name_db = ttk.Entry(self.db_frame, textvariable=new_db, font=MAIN_FONT, width=32)
+        self.name_db.grid(column=1, row=1, pady=5)
+
+        self.button_create_db = ttk.Button(self.db_frame, text="Add new database", command="")
+        self.button_create_db.grid(column=2, row=1, pady=5)
+
+        # Tables
+        self.table_frame = ttk.LabelFrame(self.sql_window, height=105, width=650, text="Choose Table")
+        self.table_frame.grid_propagate(0)
+        self.table_frame.grid_columnconfigure(0, weight=0)
+        self.table_frame.grid(column=0, row=1, padx=20, pady=20, ipadx=66)
+
+        self.label_choose_table = ttk.Label(self.table_frame, text="Choose table from list:")
+        self.label_choose_table.grid(column=0, row=0, pady=5)
+
+        self.button_choose_table = ttk.Button(self.table_frame, text="Confirm", command="")
+        self.button_choose_table.grid(column=2, row=0, pady=5)
+
+        self.table = tk.StringVar()
+        self.table_chosen = ttk.Combobox(self.table_frame, width=30, textvariable=self.table, font=MAIN_FONT,
+                                         state="readonly")
+        self.table_chosen.grid(column=1, row=0, pady=5)
+
+        self.label_create_table = ttk.Label(self.table_frame, text="Or create new one:")
+        self.label_create_table.grid(column=0, row=1, pady=5)
+
+        new_table = tk.StringVar()
+        self.name_table = ttk.Entry(self.table_frame, textvariable=new_table, font=MAIN_FONT, width=32)
+        self.name_table.grid(column=1, row=1, pady=5)
+
+        self.button_create_table = ttk.Button(self.table_frame, text="Add new table", command="")
+        self.button_create_table.grid(column=2, row=1, pady=5)
+
+        # Words
+        self.words_frame = ttk.LabelFrame(self.sql_window, height=270, width=650, text="Check words spelling")
+        self.words_frame.grid_propagate(0)
+        self.words_frame.grid_columnconfigure(0, weight=0)
+        self.words_frame.grid(column=0, row=2, padx=20, pady=20, ipadx=66)
+
+        word_1 = tk.StringVar()
+        self.word_1 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_1)
+        self.word_1.grid(column=0, row=0, pady=10, padx=10)
+
+        word_2 = tk.StringVar()
+        self.word_2 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_2)
+        self.word_2.grid(column=0, row=1, pady=10, padx=10)
+
+        word_3 = tk.StringVar()
+        self.word_3 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_3)
+        self.word_3.grid(column=0, row=2, pady=10, padx=10)
+
+        word_4 = tk.StringVar()
+        self.word_4 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_4)
+        self.word_4.grid(column=0, row=3, pady=10, padx=10)
+
+        word_5 = tk.StringVar()
+        self.word_5 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_5)
+        self.word_5.grid(column=0, row=4, pady=10, padx=10)
+
+        self.button_words_db = ttk.Button(self.words_frame, text="Save to database", command="")
+        self.button_words_db.grid(column=1, row=4)
+
+        self.table = tk.StringVar()
+        self.table_chosen = ttk.Combobox(self.table_frame, width=30, textvariable=self.table, font=MAIN_FONT,
+                                         state="readonly")
+        self.table_chosen.grid(column=1, row=0, pady=5)
+
+        self.label_create_table = ttk.Label(self.table_frame, text="Or create new one:")
+        self.label_create_table.grid(column=0, row=1, pady=5)
+
+        new_table = tk.StringVar()
+        self.name_table = ttk.Entry(self.table_frame, textvariable=new_table, font=MAIN_FONT, width=32)
+        self.name_table.grid(column=1, row=1, pady=5)
+
+        # Words
+        self.words_frame = ttk.LabelFrame(self.sql_window, height=270, width=650, text="Check words spelling")
+        self.words_frame.grid_propagate(0)
+        self.words_frame.grid_columnconfigure(0, weight=0)
+
+        word_1 = tk.StringVar()
+        self.word_1 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_1)
+        self.word_1.grid(column=0, row=0, pady=10, padx=10)
+
+        word_2 = tk.StringVar()
+        self.word_2 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_2)
+        self.word_2.grid(column=0, row=1, pady=10, padx=10)
+
+        word_3 = tk.StringVar()
+        self.word_3 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_3)
+        self.word_3.grid(column=0, row=2, pady=10, padx=10)
+
+        word_4 = tk.StringVar()
+        self.word_4 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_4)
+        self.word_4.grid(column=0, row=3, pady=10, padx=10)
+
+        word_5 = tk.StringVar()
+        self.word_5 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_5)
+        self.word_5.grid(column=0, row=4, pady=10, padx=10)
