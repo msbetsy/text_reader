@@ -10,6 +10,7 @@ class SQLDatabase:
     def __init__(self):
         """Constructor method."""
         self.db_name = ""
+        self.all_databases = []
 
     @staticmethod
     def connect():
@@ -26,10 +27,10 @@ class SQLDatabase:
     def close(cursor, conn):
         """Close connection with database.
 
-        :param cursor: A character to be converted to sine wave or silence array.
-        :type cursor: str
-        :param conn: .
-        :type conn:
+        :param cursor: MySQL cursor.
+        :type cursor:  mysql.connector.cursor.MySQLCursor
+        :param conn: MySQL connector.
+        :type conn: mysql.connector.connection.MySQLConnection
         """
         cursor.close()
         conn.close()
@@ -56,3 +57,27 @@ class SQLDatabase:
             SQLDatabase.close(cursor, conn)
 
         return success
+
+    def show_database(self):
+        """Show all databases.
+
+        :return: All names of databases.
+        :rtype: table
+        """
+        conn, cursor = SQLDatabase.connect()
+        cursor.execute("SHOW DATABASES")
+        self.all_databases = [db[0] for db in cursor.fetchall()]
+        SQLDatabase.close(cursor, conn)
+        return self.all_databases
+
+    def change_database(self, cursor):
+        """Switch database.
+
+        :param cursor: MySQL cursor.
+        :type cursor:  mysql.connector.cursor.MySQLCursor
+        :raises mysql.connector.errors.ProgrammingError: Unknown database.
+        """
+        try:
+            cursor.execute("USE {}".format(self.db_name))
+        except mysql.connector.errors.ProgrammingError as err:
+            print("{}, {} -->  unknown".format(err, self.db_name))
