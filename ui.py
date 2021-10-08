@@ -6,6 +6,7 @@ from tkinter import messagebox as msg
 from tkinter.filedialog import asksaveasfile, askopenfile
 from threading import Thread
 from files import FilesManager
+from database import SQLDatabase
 from languages import languages
 from tips import create_tip
 
@@ -326,6 +327,10 @@ class SQLSaveInterface(TextReaderInterface):
         self.words_to_use = words
         self.path = path
 
+        self.sql_database = SQLDatabase()
+        self.db = ""
+        self.table_db = ""
+
         # Styles
         self.sql_window.configure(bg='#DEEEEA')
         self.sql_window.option_add('*TCombobox*Listbox.font', MAIN_FONT)
@@ -339,12 +344,13 @@ class SQLSaveInterface(TextReaderInterface):
         self.label_choose_db = ttk.Label(self.db_frame, text="Choose database from list:")
         self.label_choose_db.grid(column=0, row=0, pady=5)
 
-        self.button_choose_db = ttk.Button(self.db_frame, text="Confirm", command="")
+        self.button_choose_db = ttk.Button(self.db_frame, text="Confirm", command=self.confirm_db)
         self.button_choose_db.grid(column=2, row=0, pady=5)
 
         self.database = tk.StringVar()
         self.database_chosen = ttk.Combobox(self.db_frame, width=30, textvariable=self.database, font=MAIN_FONT,
                                             state="readonly")
+        self.show_db_combobox()
         self.database_chosen.grid(column=1, row=0, pady=5)
 
         self.label_create_db = ttk.Label(self.db_frame, text="Or create new one:")
@@ -354,7 +360,7 @@ class SQLSaveInterface(TextReaderInterface):
         self.name_db = ttk.Entry(self.db_frame, textvariable=new_db, font=MAIN_FONT, width=32)
         self.name_db.grid(column=1, row=1, pady=5)
 
-        self.button_create_db = ttk.Button(self.db_frame, text="Add new database", command="")
+        self.button_create_db = ttk.Button(self.db_frame, text="Add new database", command=self.add_db)
         self.button_create_db.grid(column=2, row=1, pady=5)
 
         # Tables
@@ -362,11 +368,12 @@ class SQLSaveInterface(TextReaderInterface):
         self.table_frame.grid_propagate(0)
         self.table_frame.grid_columnconfigure(0, weight=0)
         self.table_frame.grid(column=0, row=1, padx=20, pady=20, ipadx=66)
+        self.table_frame.grid_forget()
 
         self.label_choose_table = ttk.Label(self.table_frame, text="Choose table from list:")
         self.label_choose_table.grid(column=0, row=0, pady=5)
 
-        self.button_choose_table = ttk.Button(self.table_frame, text="Confirm", command="")
+        self.button_choose_table = ttk.Button(self.table_frame, text="Confirm", command=self.confirm_table)
         self.button_choose_table.grid(column=2, row=0, pady=5)
 
         self.table = tk.StringVar()
@@ -381,7 +388,7 @@ class SQLSaveInterface(TextReaderInterface):
         self.name_table = ttk.Entry(self.table_frame, textvariable=new_table, font=MAIN_FONT, width=32)
         self.name_table.grid(column=1, row=1, pady=5)
 
-        self.button_create_table = ttk.Button(self.table_frame, text="Add new table", command="")
+        self.button_create_table = ttk.Button(self.table_frame, text="Add new table", command=self.create_table_db)
         self.button_create_table.grid(column=2, row=1, pady=5)
 
         # Words
@@ -389,6 +396,7 @@ class SQLSaveInterface(TextReaderInterface):
         self.words_frame.grid_propagate(0)
         self.words_frame.grid_columnconfigure(0, weight=0)
         self.words_frame.grid(column=0, row=2, padx=20, pady=20, ipadx=66)
+        self.words_frame.grid_forget()
 
         word_1 = tk.StringVar()
         self.word_1 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_1)
@@ -410,42 +418,115 @@ class SQLSaveInterface(TextReaderInterface):
         self.word_5 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_5)
         self.word_5.grid(column=0, row=4, pady=10, padx=10)
 
-        self.button_words_db = ttk.Button(self.words_frame, text="Save to database", command="")
+        self.button_words_db = ttk.Button(self.words_frame, text="Save to database", command=self.save_in_db)
         self.button_words_db.grid(column=1, row=4)
 
-        self.table = tk.StringVar()
-        self.table_chosen = ttk.Combobox(self.table_frame, width=30, textvariable=self.table, font=MAIN_FONT,
-                                         state="readonly")
-        self.table_chosen.grid(column=1, row=0, pady=5)
+    def confirm_db(self):
+        """Confirm the database which will be used."""
+        self.words_frame.grid_forget()
+        self.table_frame.grid(column=0, row=1, padx=20, pady=20, ipadx=66)
+        self.table_chosen.set("")
+        self.show_table_combobox()
 
-        self.label_create_table = ttk.Label(self.table_frame, text="Or create new one:")
-        self.label_create_table.grid(column=0, row=1, pady=5)
+    def show_table_combobox(self):
+        """Show all tables in chosen databases in combobox."""
+        self.table_chosen["values"] = self.sql_database.show_tables(self.change_db())
+        if len(self.table_chosen["values"]) > 0:
+            self.table_chosen.current(0)
 
-        new_table = tk.StringVar()
-        self.name_table = ttk.Entry(self.table_frame, textvariable=new_table, font=MAIN_FONT, width=32)
-        self.name_table.grid(column=1, row=1, pady=5)
+    def change_db(self):
+        """Change database which will be used.
 
-        # Words
-        self.words_frame = ttk.LabelFrame(self.sql_window, height=270, width=650, text="Check words spelling")
+        :return: Name of database which will be used.
+        :rtype: str
+        """
+        self.db = self.database.get()
+        return self.db
+
+    def add_db(self):
+        """Create new SQL database."""
+        name_db = self.name_db.get()
+        if len(name_db) > 0:
+            self.sql_database.db_name = name_db
+            if self.sql_database.create_database():
+                msg.showinfo(
+                    message="".join(
+                        [str(self.name_db.get()), " created as text_reader_", str(self.sql_database.db_name)]))
+                self.name_db.delete(0, tk.END)
+                self.show_db_combobox()
+            else:
+                msg.showinfo(message="Failed")
+        else:
+            msg.showinfo(message="Write db name!")
+
+    def show_db_combobox(self):
+        """Show all databases in combobox."""
+        self.database_chosen["values"] = self.sql_database.show_database()
+        if len(self.database_chosen["values"]) > 0:
+            self.database_chosen.current(0)
+
+    def confirm_table(self):
+        """Confirm the table in the database which will be used."""
+        self.words_frame.grid(column=0, row=2, padx=20, pady=20, ipadx=66)
         self.words_frame.grid_propagate(0)
         self.words_frame.grid_columnconfigure(0, weight=0)
+        self.load_words()
+        self.table_db = self.table.get()
+        self.db = self.database.get()
 
-        word_1 = tk.StringVar()
-        self.word_1 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_1)
-        self.word_1.grid(column=0, row=0, pady=10, padx=10)
+    def create_table_db(self):
+        """Create a new table in chosen database."""
+        table_name = self.name_table.get()
+        if len(table_name) > 0:
+            self.table_db = table_name
+            self.sql_database.db_name = self.db
+            if self.sql_database.create_table(self.table_db):
+                msg.showinfo(
+                    message="".join([str(self.table_db), " created"]))
+                self.name_table.delete(0, tk.END)
+                self.show_table_combobox()
+            else:
+                msg.showinfo(message="Failed")
+        else:
+            msg.showinfo(message="Write table name!")
 
-        word_2 = tk.StringVar()
-        self.word_2 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_2)
-        self.word_2.grid(column=0, row=1, pady=10, padx=10)
+    def delete_words(self):
+        """Remove 5 top words."""
+        self.word_1.delete(0, tk.END)
+        self.word_2.delete(0, tk.END)
+        self.word_3.delete(0, tk.END)
+        self.word_4.delete(0, tk.END)
+        self.word_5.delete(0, tk.END)
 
-        word_3 = tk.StringVar()
-        self.word_3 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_3)
-        self.word_3.grid(column=0, row=2, pady=10, padx=10)
+    def load_words(self):
+        """Load top 5 words from text to GUI."""
+        self.delete_words()
+        words_count = len(self.words_to_use)
+        if words_count >= 1:
+            self.word_1.insert(0, self.words_to_use[0])
+        if words_count >= 2:
+            self.word_2.insert(0, self.words_to_use[1])
+        else:
+            self.word_2.configure(state="disabled")
+        if words_count >= 3:
+            self.word_3.insert(0, self.words_to_use[2])
+        else:
+            self.word_3.configure(state="disabled")
+        if words_count >= 4:
+            self.word_4.insert(0, self.words_to_use[3])
+        else:
+            self.word_4.configure(state="disabled")
+        if words_count == 5:
+            self.word_5.insert(0, self.words_to_use[4])
+        else:
+            self.word_5.configure(state="disabled")
 
-        word_4 = tk.StringVar()
-        self.word_4 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_4)
-        self.word_4.grid(column=0, row=3, pady=10, padx=10)
-
-        word_5 = tk.StringVar()
-        self.word_5 = ttk.Entry(self.words_frame, font=FONT_5_WORDS, textvariable=word_5)
-        self.word_5.grid(column=0, row=4, pady=10, padx=10)
+    def save_in_db(self):
+        """Save 5 top words in chosen table."""
+        self.sql_database.table_name = self.table_db
+        self.sql_database.db_name = self.db
+        if self.sql_database.insert_item(text_path=self.path, word_first=self.word_1.get(),
+                                         word_second=self.word_2.get(),
+                                         word_third=self.word_3.get(), word_fourth=self.word_4.get(),
+                                         word_fifth=self.word_5.get()):
+            msg.showinfo(message="Done")
