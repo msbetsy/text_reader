@@ -51,10 +51,10 @@ class SQLDatabase:
             cursor.execute(
                 "CREATE DATABASE text_reader_{} DEFAULT CHARACTER SET 'utf8'".format(self.db_name))
             success = True
-        except mysql.connector.Error as err:
-            print("Failed creating database: {}".format(err))
         except mysql.connector.errors.DatabaseError as err:
             print("database exists: {}".format(err))
+        except mysql.connector.Error as err:
+            print("Failed creating database: {}".format(err))
         finally:
             SQLDatabase.close(cursor, conn)
 
@@ -68,7 +68,7 @@ class SQLDatabase:
         """
         conn, cursor = SQLDatabase.connect()
         cursor.execute("SHOW DATABASES")
-        self.all_databases = [db[0] for db in cursor.fetchall()]
+        self.all_databases = [db[0] for db in cursor.fetchall() if db[0].startswith('text_reader_')]
         SQLDatabase.close(cursor, conn)
         return self.all_databases
 
@@ -96,7 +96,7 @@ class SQLDatabase:
         self.table_name = table_name
         conn, cursor = SQLDatabase.connect()
         self.change_database(cursor)
-        sucess = False
+        success = False
         try:
             cursor.execute("CREATE TABLE IF NOT EXISTS {} (\
                         Text_ID int NOT NULL AUTO_INCREMENT PRIMARY KEY,\
@@ -107,13 +107,13 @@ class SQLDatabase:
                         Word_Fourth varchar(250),\
                         Word_Fifth varchar(250));\
                         ".format(self.table_name))
-            sucess = True
+            success = True
         except mysql.connector.errors.ProgrammingError as err:
             print("Failed creating table: {}".format(err))
         finally:
             SQLDatabase.close(cursor, conn)
 
-        return sucess
+        return success
 
     def show_tables(self, name_db):
         """Show all table names in chosen database.
