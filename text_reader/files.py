@@ -2,6 +2,7 @@
 from collections import OrderedDict
 import string
 import chardet
+import pdfminer.high_level
 import textract
 from gtts import gTTS
 import nltk
@@ -32,6 +33,7 @@ class FilesManager:
         :param file: File path.
         :type: str
         :raises UnicodeDecodeError: Error with text coding.
+        :raises textract.exceptions.ShellError: Error with file.
         :return: Text from the file.
         :rtype: str
         """
@@ -39,10 +41,13 @@ class FilesManager:
             with open(file, encoding="utf-8") as f:
                 self.text = f.read()
         except UnicodeDecodeError:
-            text = textract.process(file)
-            file_information = chardet.detect(text)
-            self.text = text.decode(file_information["encoding"])
-
+            try:
+                text = textract.process(file)
+                file_information = chardet.detect(text)
+                self.text = text.decode(file_information["encoding"])
+            except textract.exceptions.ShellError:
+                text = pdfminer.high_level.extract_text(file)
+                self.text = text
         return self.text
 
     def convert_text_to_mp3(self, language, filename):
