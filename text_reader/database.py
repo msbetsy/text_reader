@@ -1,7 +1,6 @@
 """The module is responsible for SQL databases."""
 import mysql.connector
-import databaseconfig as cfg
-
+import text_reader.databaseconfig as cfg
 
 class SQLDatabase:
     """This class can be used for SQL operation on databases.
@@ -64,7 +63,7 @@ class SQLDatabase:
         """Show all databases.
 
         :return: All names of databases.
-        :rtype: table
+        :rtype: list
         """
         conn, cursor = SQLDatabase.connect()
         cursor.execute("SHOW DATABASES")

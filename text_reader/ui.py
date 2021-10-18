@@ -5,10 +5,10 @@ from tkinter import ttk, scrolledtext, Menu
 from tkinter import messagebox as msg
 from tkinter.filedialog import asksaveasfile, askopenfile
 from threading import Thread
-from files import FilesManager
-from database import SQLDatabase
-from languages import languages
-from tips import create_tip
+from .files import FilesManager
+from .database import SQLDatabase
+from .languages import languages
+from .tips import create_tip
 
 MAIN_FONT = ("courier new", 12)
 FONT_5_WORDS = ("courier new", 14, "bold")
@@ -28,7 +28,7 @@ class TextReaderInterface:
         self.window.title("Text Reader")
         self.window.geometry("610x540")
         self.window.resizable(False, False)
-        self.window.iconbitmap('favicon.ico')
+        self.window.iconbitmap('text_reader/favicon.ico')
 
         self.text = None
         self.file_path = None
@@ -323,7 +323,7 @@ class SQLSaveInterface(TextReaderInterface):
         self.sql_window.title("Save in SQL base")
         self.sql_window.geometry("830x640")
         self.sql_window.resizable(False, False)
-        self.sql_window.iconbitmap('favicon.ico')
+        self.sql_window.iconbitmap('text_reader/favicon.ico')
         self.words_to_use = words
         self.path = path
 
